@@ -15,6 +15,7 @@ export default {
         }
 
         const data: TestData = await request.json();
-        return new Response(`Received message: ${data.message}`, {status: 200});
+        const lemonSqueezyLength = env.LEMON_SQUEEZY_WEBHOOK_SECRET?.length || 0;
+        return new Response(`Received message: ${data.message}. LEMON_SQUEEZY length ${lemonSqueezyLength}`, {status: 200});
     }
 }
