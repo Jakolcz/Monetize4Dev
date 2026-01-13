@@ -1,11 +1,11 @@
+import {handleLemonSqueezyWebhook} from "../handlers/lemonsqueezy";
+
 export interface Env {
-    // LemonSqueezy Webhook Secret
+    LICENSES_KV: KVNamespace;
+    DB: D1Database;
+    PRIVATE_KEY: string;
+    WEBHOOK_SECRET: string;
     LEMON_SQUEEZY_WEBHOOK_SECRET: string;
-
-}
-
-interface TestData {
-    message: string;
 }
 
 export default {
@@ -14,8 +14,11 @@ export default {
             return new Response('Method Not Allowed', {status: 405});
         }
 
-        const data: TestData = await request.json();
-        const lemonSqueezyLength = env.LEMON_SQUEEZY_WEBHOOK_SECRET?.length || 0;
-        return new Response(`Received message: ${data.message}. LEMON_SQUEEZY length ${lemonSqueezyLength}`, {status: 200});
+        const url = new URL(request.url);
+        if (url.pathname === '/webhook/lemonsqueezy') {
+            return handleLemonSqueezyWebhook(request, env);
+        }
+
+        return new Response('Not Found', {status: 404});
     }
 }

@@ -1,3 +1,22 @@
 name = 'monetize4dev'
 main = "src/index.ts"
 compatibility_date = "2026-01-12"
+
+# KV Namespace
+kv_namespaces = [
+    { binding = "LICENSES_KV", id = "your-kv-namespace-id" }
+]
+
+# D1 Database
+d1_databases = [
+    { binding = "DB", database_name = "licenses-db" }
+]
+
+# R2 Bucket
+r2_buckets = [
+    { binding = "FILES_BUCKET", bucket_name = "your-files-bucket" }
+]
+
+# Environment Variables
+[vars]
+USE_D1 = false  # Set to true to use D1 instead of KV
