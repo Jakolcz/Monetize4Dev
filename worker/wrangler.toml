@@ -4,18 +4,18 @@ compatibility_date = "2026-01-12"
 
 # KV Namespace
 kv_namespaces = [
-    { binding = "LICENSES_KV", id = "your-kv-namespace-id" }
+    { binding = "LICENSES_KV", id = "56a52f1b0ee247d9a6c802a4c826bfbd" }
 ]
 
 # D1 Database
-d1_databases = [
-    { binding = "DB", database_name = "licenses-db" }
-]
+#d1_databases = [
+#    { binding = "DB", database_name = "licenses-db", database_id = "your-d1-database-id" }
+#]
 
 # R2 Bucket
-r2_buckets = [
-    { binding = "FILES_BUCKET", bucket_name = "your-files-bucket" }
-]
+#r2_buckets = [
+#    { binding = "FILES_BUCKET", bucket_name = "your-files-bucket" }
+#]
 
 # Environment Variables
 [vars]
