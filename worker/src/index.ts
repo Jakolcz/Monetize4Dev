@@ -5,6 +5,7 @@ export interface Env {
     DB: D1Database;
     PRIVATE_KEY: string;
     WEBHOOK_SECRET: string;
+    WEBHOOK_SALT: string;
     LEMON_SQUEEZY_WEBHOOK_SECRET: string;
 }
 

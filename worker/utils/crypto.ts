@@ -1,3 +1,5 @@
+import {Env} from "../src";
+
 let cachedKey: CryptoKey | null = null;
 let cachedSecret: string | null = null;
 
@@ -41,6 +43,25 @@ export async function verifySignature(
         console.error("Signature verification failed:", error);
         return false;
     }
+}
+
+export async function emailToStablePassword(email: string, env: Env): Promise<string> {
+    email = email.trim().toLowerCase();
+    const saltedEmail = `${email}:${env.WEBHOOK_SALT}`;
+    return textToSha256(saltedEmail);
+}
+
+export async function textToSha256(input: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(input);
+
+    // Convert ArrayBuffer to Hex String
+    return crypto.subtle.digest('SHA-256', dataBuffer)
+        .then(buffer => {
+            return [...new Uint8Array(buffer)]
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        });
 }
 
 /**

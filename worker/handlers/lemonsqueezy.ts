@@ -1,12 +1,14 @@
-import {verifySignature} from "../utils/crypto";
 import {Env} from "../src";
+import {emailToStablePassword, textToSha256} from "../utils/crypto";
 
+// TODO: Refactor to use KV
 const resourceMap: { [key: number]: string } = {
     // TODO : Define product ID to resource ID mapping
     // Example:
     // 123456: "resource_abc",
     // 789012: "resource_def",
     1: "com/example/product1",
+    2: "com/example/product2",
 };
 
 export async function handleLemonSqueezyWebhook(
@@ -34,15 +36,15 @@ export async function handleLemonSqueezyWebhook(
     const payload = JSON.parse(rawBody);
     const eventName: string = payload.meta.event_name;
 
-    if (eventName === "order_created") {
-        return handleOrderCreated(payload.data.attributes, env);
+    if (eventName === "subscription_created") {
+        return handleSubscriptionCreated(payload.data.attributes, env);
     }
     // TODO : Handle other event types as needed
 
     return new Response("Unsupported event", {status: 400});
 }
 
-async function handleOrderCreated(
+async function handleSubscriptionCreated(
     payloadAttributes: any,
     env: Env
 ): Promise<Response> {
@@ -50,7 +52,7 @@ async function handleOrderCreated(
         return new Response("Invalid payload", {status: 400});
     }
     const status: string = payloadAttributes.status;
-    if (status !== "paid") {
+    if (status !== "active") {
         return new Response("Order not paid", {status: 402});
     }
     // TODO how to map products to resources?
@@ -65,7 +67,7 @@ async function handleOrderCreated(
     await grantAccessToResource(
         email,
         resource,
-        "TODO-LICENSE-KEY",
+        payloadAttributes.ends_at || payloadAttributes.renews_at,
         env
     );
 
@@ -75,36 +77,33 @@ async function handleOrderCreated(
 async function grantAccessToResource(
     email: string,
     resource: string,
-    license: string,
+    expiresAt: string,
     env: Env
 ): Promise<void> {
     const storage: KVNamespace<string> = env.LICENSES_KV;
-    const entryKey = await generateKey(`${email}:${license}`);
+    const entryKey = email.toLowerCase().trim();
 
-    console.log(`Checking access for ${email} to resource ${resource}, entryKey: ${entryKey}`);
-    let existingEntry = await storage.get(entryKey).then(res => JSON.parse(res || "{\"resources\":[]}"));
-    if (!existingEntry.resources[resource]) {
-        existingEntry.resources[resource] = true;
-        console.log(`Granting access to resource ${resource} for ${email}. Existing entry: `, existingEntry);
-        const updatedEntry = JSON.stringify(existingEntry);
-        await storage.put(entryKey, updatedEntry);
+    let existingEntryStr = await storage.get(entryKey);
+    let kvEntry = existingEntryStr ? JSON.parse(existingEntryStr) : {resources: {}};
+
+    if (!kvEntry.password) {
+        // Double hash as first hash is sent to user to use for access, second is stored in KV
+        kvEntry.password = await emailToStablePassword(email, env).then(textToSha256);
+    }
+
+    if (!kvEntry.resources[resource]) {
+        kvEntry.resources[resource] = {expiresAt: expiresAt};
+        console.log(`Granting access to resource ${resource} for ${email}. The entry: `, kvEntry);
+        const updatedEntry = JSON.stringify(kvEntry);
+        console.log("Updated entry: ", updatedEntry);
+        return storage.put(entryKey, updatedEntry);
     }
 
     return Promise.resolve();
-}
-async function generateKey(data: string) {
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-
-    // Convert ArrayBuffer to Hex String
-    return [...new Uint8Array(hashBuffer)]
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
 }
 
 
 function mapProductToResource(productId: number): string | null {
     // TODO : Implement product to resource mapping
-    return resourceMap[productId] || "com/example/default";
+    return resourceMap[productId];
 }
