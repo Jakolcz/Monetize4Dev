@@ -1,5 +1,6 @@
 import {Env} from "../src";
 import {emailToStablePassword, textToSha256} from "../utils/crypto";
+import {AccessDetails} from "../types/AccessDetails";
 
 // TODO: Refactor to use KV
 const resourceMap: { [key: number]: string } = {
@@ -15,6 +16,9 @@ export async function handleLemonSqueezyWebhook(
     request: Request,
     env: Env
 ): Promise<Response> {
+    if (request.method !== 'POST') {
+        return new Response('Method Not Allowed', {status: 405});
+    }
     const signature = request.headers.get("X-Signature");
     if (!signature) {
         return new Response("Missing signature", {status: 400});
@@ -84,7 +88,7 @@ async function grantAccessToResource(
     const entryKey = email.toLowerCase().trim();
 
     let existingEntryStr = await storage.get(entryKey);
-    let kvEntry = existingEntryStr ? JSON.parse(existingEntryStr) : {resources: {}};
+    let kvEntry: AccessDetails = existingEntryStr ? JSON.parse(existingEntryStr) as AccessDetails : {resources: {}, accessType: "read"};
 
     if (!kvEntry.password) {
         // Double hash as first hash is sent to user to use for access, second is stored in KV

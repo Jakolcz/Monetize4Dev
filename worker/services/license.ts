@@ -1,3 +1,4 @@
+// TODO: Rethink and probably delete this file
 export enum AccessType {
     READ = 'GET',
     WRITE = 'POST',

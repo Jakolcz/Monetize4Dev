@@ -13,9 +13,9 @@ kv_namespaces = [
 #]
 
 # R2 Bucket
-#r2_buckets = [
-#    { binding = "FILES_BUCKET", bucket_name = "your-files-bucket" }
-#]
+r2_buckets = [
+    { binding = "FILES_BUCKET", bucket_name = "your-files-bucket" }
+]
 
 # Environment Variables
 [vars]
