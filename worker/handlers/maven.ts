@@ -29,9 +29,7 @@ export async function handleMavenResourceRequest(request: Request, env: Env): Pr
 }
 
 async function handleMavenUpload(request: Request, env: Env): Promise<Response> {
-    console.log("Handling Maven upload request");
     const authResult: AuthResult = await handleAuth(request, env.LICENSES_KV);
-    console.log("Auth result: ", authResult);
     if (!authResult.access) {
         return createUnauthorizedResponse();
     }
@@ -39,17 +37,28 @@ async function handleMavenUpload(request: Request, env: Env): Promise<Response> 
         return new Response("Forbidden", {status: 403});
     }
 
-    const r2 = env.FILES_BUCKET;
     const url = new URL(request.url);
+    if (url.pathname.includes('-SNAPSHOT') || url.pathname.includes('/snapshots/')) {
+        return new Response("SNAPSHOT artifacts are not allowed", {
+            status: 403
+        });
+    }
+
+    const r2 = env.FILES_BUCKET;
     const objectKey = url.pathname.replace('/maven/', '');
-    console.log("Headers: ", Array.from(request.headers.entries()));
+    if (!url.pathname.includes('maven-metadata.xml')) {
+        const existingObject = await r2.get(objectKey);
+        if (existingObject) {
+            return new Response("Conflict: Object already exists", {status: 409});
+        }
+    }
+
     const contentType = request.headers.get('Content-Type') || 'application/octet-stream';
     const putResult = await r2.put(objectKey, request.body, {
         httpMetadata: {
             contentType: contentType,
         },
     });
-    console.log("Uploaded object to R2: ", objectKey, " Result: ", putResult);
     return new Response("Uploaded", {status: 201});
 }
 
@@ -69,8 +78,6 @@ async function handleMavenDownload(request: Request, env: Env): Promise<Response
         headers.set('Content-Length', object.size.toString());
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
         headers.set('ETag', object.etag);
-        console.log("Serving object from R2: ", objectKey);
-        console.log("Headers: ", Array.from(headers.entries()));
         return new Response(object.body, {status: 200, headers});
     }
 
